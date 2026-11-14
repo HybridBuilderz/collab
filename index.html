@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Jenny's Piano</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-inner">
+    <p class="hero-pre">a small corner of the world, made of music</p>
+    <h1 class="hero-name">Jenny</h1>
+    <p class="hero-sub">for the girl whose fingers speak in keys</p>
+    <a class="hero-cta" href="#piano-section">play the piano ↓</a>
+  </div>
+</section>
+
+<section id="piano-section" class="piano-section">
+  <div id="piano-canvas-wrap">
+    <canvas id="piano-canvas"></canvas>
+
+    <div class="piano-hud">
+      <div class="hud-row">
+        <button id="btn-oct-down" class="hud-btn" aria-label="Octave down">−8ve</button>
+        <span id="octave-label" class="oct-label">C4</span>
+        <button id="btn-oct-up" class="hud-btn" aria-label="Octave up">+8ve</button>
+      </div>
+      <button id="btn-sustain" class="hud-btn sustain-btn" aria-pressed="false">sustain&nbsp;pedal</button>
+    </div>
+
+    <p class="piano-hint">tap the keys — chords work too · drag the dark to look around</p>
+
+    <div id="audio-gate" class="audio-gate">
+      <div class="gate-card">
+        <h2>the piano is waiting</h2>
+        <p>tuning the strings…</p>
+        <button id="btn-enter" class="gate-btn">open the lid</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="message-section">
+  <div class="message-inner">
+    <p class="msg-pre">a note left on the stand</p>
+    <!-- Manuel: replace the text below with your own words to Jenny -->
+    <p class="msg-body">Jenny — this page exists because you exist. Every key here plays a real note, but none of them sound as good as hearing from you. Play something. It's yours, always.</p>
+    <p class="msg-sign">— with love, always</p>
+  </div>
+</section>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module" src="main.js"></script>
+</body>
+</html>
