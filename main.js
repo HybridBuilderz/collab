@@ -7,6 +7,7 @@ const BLACK_AFTER = { C: true, D: true, E: false, F: true, G: true, A: true, B: 
 const START_OCTAVE = 4;          // octave shown in HUD label when centered
 const NUM_OCTAVES = 2;           // keys built per octave band; camera frames the middle
 const SUSTAIN_RELEASE = 1.4;
+const ORBIT_TARGET = new THREE.Vector3(0, 0.5, 0.3); // pivot for orbit + framing
 
 /* ============ audio (Tone.js) ============ */
 let sampler = null;
@@ -60,11 +61,11 @@ scene.background = new THREE.Color(0x0b0908);
 scene.fog = new THREE.Fog(0x0b0908, 14, 30);
 
 const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-camera.position.set(0, 3.4, 6.2);
-camera.lookAt(0, 0.8, 0);
+camera.position.set(0, 4.6, 5.2);
+camera.lookAt(ORBIT_TARGET);
 
 /* --- lights --- */
-scene.add(new THREE.AmbientLight(0xf2e8d8, 0.35));
+scene.add(new THREE.AmbientLight(0xf2e8d8, 0.55));
 
 const key = new THREE.SpotLight(0xe6c88f, 90, 25, Math.PI / 5, 0.4, 1.6);
 key.position.set(2, 9, 4);
@@ -72,6 +73,12 @@ key.target.position.set(0, 0, 0);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
 scene.add(key, key.target);
+
+// soft fill from the front so the body and open lid read in the default view
+const fill = new THREE.SpotLight(0xf2e8d8, 70, 25, Math.PI / 4, 0.5, 1.6);
+fill.position.set(-3, 7, 5);
+fill.target.position.set(0, 0.5, -2);
+scene.add(fill, fill.target);
 
 const rim = new THREE.PointLight(0x8c2f39, 12, 18);
 rim.position.set(-5, 3, -4);
@@ -90,14 +97,16 @@ scene.add(floor);
 const piano = new THREE.Group();
 scene.add(piano);
 
-const woodMat = new THREE.MeshStandardMaterial({ color: 0x1a120c, roughness: 0.25, metalness: 0.15 });
-const woodMatDark = new THREE.MeshStandardMaterial({ color: 0x0e0a07, roughness: 0.3 });
+const woodMat = new THREE.MeshStandardMaterial({ color: 0x3a2817, roughness: 0.35, metalness: 0.1 });
+const woodMatDark = new THREE.MeshStandardMaterial({ color: 0x2a1d11, roughness: 0.35 });
 const feltMat = new THREE.MeshStandardMaterial({ color: 0x8c2f39, roughness: 0.95 });
 const whiteMat = new THREE.MeshStandardMaterial({ color: 0xf5f0e6, roughness: 0.35 });
 const blackMat = new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.3 });
 const goldMat = new THREE.MeshStandardMaterial({ color: 0xc9a86a, roughness: 0.3, metalness: 0.7 });
 
 const KEY_W = 0.24, KEY_L = 1.5, KEY_H = 0.12;
+const BLACK_LIFT = 0.055;          // black keys sit higher than white keys, like a real piano
+const HOVER_EMISSIVE = 0x6b4e1e;   // warm gold hover glow
 const keys = [];           // { mesh, note, isBlack, baseX }
 const activeTouches = new Map(); // touchId -> key
 
@@ -105,35 +114,58 @@ function buildKeybed() {
   const totalWhite = NUM_OCTAVES * 7 + 1;
   const bedW = totalWhite * KEY_W;
 
-  // keybed base + cheeks
-  const bed = new THREE.Mesh(new THREE.BoxGeometry(bedW + 0.3, 0.18, KEY_L + 0.3), woodMat);
-  bed.position.set(0, -0.1, KEY_L / 2 + 0.15);
+  // keybed base: thicker now, and run back into the body so there is no seam
+  const bed = new THREE.Mesh(new THREE.BoxGeometry(bedW + 0.46, 0.3, KEY_L + 0.7), woodMat);
+  bed.position.set(0, -0.14, KEY_L / 2 - 0.05);
   bed.castShadow = bed.receiveShadow = true;
   piano.add(bed);
+
+  // side cheeks: the case walls the keys sit between, tops above the keys
+  const cheekGeo = new THREE.BoxGeometry(0.16, 0.42, KEY_L + 0.55);
+  for (const side of [-1, 1]) {
+    const cheek = new THREE.Mesh(cheekGeo, woodMat);
+    cheek.position.set(side * (bedW / 2 + 0.15), 0.05, KEY_L / 2 - 0.05);
+    cheek.castShadow = cheek.receiveShadow = true;
+    piano.add(cheek);
+  }
+
+  // front key slip: low board across the key fronts, keys emerge from behind it
+  const slip = new THREE.Mesh(new THREE.BoxGeometry(bedW + 0.3, 0.14, 0.08), woodMat);
+  slip.position.set(0, 0.0, KEY_L + 0.32);
+  slip.castShadow = slip.receiveShadow = true;
+  piano.add(slip);
 
   // red felt strip behind keys
   const felt = new THREE.Mesh(new THREE.BoxGeometry(bedW, 0.02, 0.08), feltMat);
   felt.position.set(0, 0.012, 0);
   piano.add(felt);
 
-  // gold rail in front of keys
+  // gold rail across the front, sitting on the key slip
   const rail = new THREE.Mesh(new THREE.BoxGeometry(bedW + 0.3, 0.04, 0.06), goldMat);
-  rail.position.set(0, 0.02, KEY_L + 0.3);
+  rail.position.set(0, 0.09, KEY_L + 0.32);
   piano.add(rail);
+
+  // gold trim along the top of the body's front edge, ties the case together
+  const trim = new THREE.Mesh(new THREE.BoxGeometry(bedW + 0.3, 0.03, 0.05), goldMat);
+  trim.position.set(0, 0.99, -0.02);
+  piano.add(trim);
   return { bedW, totalWhite };
 }
 
 function addKey(note, isBlack, x, totalWhite) {
   const geo = new THREE.BoxGeometry(
-    isBlack ? KEY_W * 0.58 : KEY_W - 0.012,
+    isBlack ? KEY_W * 0.52 : KEY_W - 0.02,
     KEY_H,
     isBlack ? KEY_L * 0.62 : KEY_L
   );
-  const mesh = new THREE.Mesh(geo, isBlack ? blackMat : whiteMat);
+  // each key gets its own material so hover and press can light one key only
+  const mesh = new THREE.Mesh(geo, (isBlack ? blackMat : whiteMat).clone());
   mesh.castShadow = true;
   // pivot at the back of the key (balance pin), like a real action
   mesh.geometry.translate(0, 0, isBlack ? KEY_L * 0.31 : KEY_L / 2);
-  mesh.position.set(x, KEY_H / 2 + 0.02, isBlack ? 0.06 : 0);
+  // black keys sit higher than white keys, like a real piano: their tops
+  // never share a plane with the white keys, so no more flicker
+  mesh.position.set(x, KEY_H / 2 + 0.02 + (isBlack ? BLACK_LIFT : 0), isBlack ? 0.06 : 0);
   mesh.userData = { note, isBlack, pressed: false };
   piano.add(mesh);
   keys.push(mesh);
@@ -241,10 +273,27 @@ function pickKey(clientX, clientY) {
   return hits.length ? hits[0].object : null;
 }
 
+/* --- hover: a soft gold glow on the key under the mouse --- */
+let hoveredKey = null;
+
+function setGlow(mesh, on) {
+  if (!mesh) return;
+  mesh.material.emissive.setHex(on ? HOVER_EMISSIVE : 0x000000);
+  mesh.material.emissiveIntensity = on ? 0.55 : 0;
+}
+
+function setHover(mesh) {
+  if (mesh === hoveredKey) return;
+  if (hoveredKey && !hoveredKey.userData.pressed) setGlow(hoveredKey, false);
+  hoveredKey = mesh;
+  if (hoveredKey && !hoveredKey.userData.pressed) setGlow(hoveredKey, true);
+}
+
 function pressKey(mesh) {
   if (!mesh || mesh.userData.pressed) return;
   mesh.userData.pressed = true;
   mesh.rotation.x = 0.055; // dip the front of the key
+  setGlow(mesh, true);
   playNote(mesh.userData.note);
 }
 
@@ -252,6 +301,7 @@ function liftKey(mesh) {
   if (!mesh || !mesh.userData.pressed) return;
   mesh.userData.pressed = false;
   mesh.rotation.x = 0;
+  setGlow(mesh, mesh === hoveredKey);
   releaseNote(mesh.userData.note);
 }
 
@@ -296,6 +346,7 @@ canvas.addEventListener('mousedown', (e) => {
   if (k) pressKey(k);
 });
 window.addEventListener('mousemove', (e) => {
+  if (!mouseDown && !mOrbit) setHover(pickKey(e.clientX, e.clientY));
   if (!mouseDown) return;
   const k = pickKey(e.clientX, e.clientY);
   if (k) pressKey(k);
@@ -340,7 +391,7 @@ wrap.addEventListener('touchmove', (e) => {
     // orbit around the piano
     const dx = e.touches[0].clientX - orbitLast.x;
     const dy = e.touches[0].clientY - orbitLast.y;
-    const target = new THREE.Vector3(0, 0.8, 0);
+    const target = ORBIT_TARGET;
     const off = camera.position.clone().sub(target);
     const sph = new THREE.Spherical().setFromVector3(off);
     sph.theta -= dx * 0.005;
@@ -365,7 +416,7 @@ canvas.addEventListener('mousedown', (e) => {
 window.addEventListener('mousemove', (e) => {
   if (!mOrbit) return;
   const dx = e.clientX - mOrbit.x, dy = e.clientY - mOrbit.y;
-  const target = new THREE.Vector3(0, 0.8, 0);
+  const target = ORBIT_TARGET;
   const off = camera.position.clone().sub(target);
   const sph = new THREE.Spherical().setFromVector3(off);
   sph.theta -= dx * 0.005;
@@ -412,8 +463,11 @@ document.getElementById('btn-enter').addEventListener('click', async (e) => {
   e.currentTarget.textContent = 'tuning…';
   try {
     await Tone.start();        // unlock audio on user gesture (mobile policy)
-    await initAudio();
     gate.classList.add('hidden');
+    e.currentTarget.textContent = 'open the lid'; // reset for the next visit state
+    // samples load in the background; the piano opens right away and
+    // the keys start sounding as soon as the samples arrive
+    initAudio().catch(() => { /* piano stays playable, just silent */ });
   } catch (err) {
     e.currentTarget.textContent = 'something went wrong — try again';
   }
@@ -429,6 +483,7 @@ function resize() {
   const dist = rect.width < 480 ? 7.6 : 6.4;
   const dir = camera.position.clone().normalize();
   camera.position.copy(dir.multiplyScalar(dist));
+  camera.lookAt(ORBIT_TARGET);
 }
 new ResizeObserver(resize).observe(wrap);
 resize();
