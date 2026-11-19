@@ -457,6 +457,49 @@ sustainBtn.addEventListener('click', () => {
   if (!sustainOn) releaseAll();
 });
 
+/* --- fullscreen: landscape, keys enlarged, two-hand play --- */
+const fsBtn = document.getElementById('btn-fullscreen');
+const isFullscreen = () => document.fullscreenElement === wrap || wrap.classList.contains('fake-fullscreen');
+function syncFsButton() {
+  fsBtn.textContent = isFullscreen() ? 'exit fullscreen' : 'fullscreen';
+}
+
+async function toggleFullscreen() {
+  try {
+    if (!isFullscreen()) {
+      if (wrap.requestFullscreen) {
+        try {
+          await wrap.requestFullscreen();
+        } catch (e) {
+          // real fullscreen blocked here (iframe, headless, permissions):
+          // fall back to the fixed overlay so the button still works
+          wrap.classList.add('fake-fullscreen');
+        }
+      } else {
+        // iPhone Safari has no element fullscreen: fake it with a fixed overlay
+        wrap.classList.add('fake-fullscreen');
+      }
+      if (screen.orientation && screen.orientation.lock) {
+        try { await screen.orientation.lock('landscape'); } catch (e) { /* rotate by hand, the hint shows */ }
+      }
+    } else if (document.fullscreenElement === wrap) {
+      await document.exitFullscreen();
+    } else {
+      wrap.classList.remove('fake-fullscreen');
+    }
+  } catch (err) { /* fullscreen unavailable here: stay in the normal view */ }
+  syncFsButton();
+  resize();
+}
+fsBtn.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', () => {
+  if (document.fullscreenElement !== wrap && screen.orientation && screen.orientation.unlock) {
+    screen.orientation.unlock();
+  }
+  syncFsButton();
+  resize();
+});
+
 /* ============ audio gate ============ */
 const gate = document.getElementById('audio-gate');
 document.getElementById('btn-enter').addEventListener('click', async (e) => {
@@ -479,8 +522,10 @@ function resize() {
   renderer.setSize(rect.width, rect.height, false);
   camera.aspect = rect.width / rect.height;
   camera.updateProjectionMatrix();
-  // frame the piano tighter on narrow screens
-  const dist = rect.width < 480 ? 7.6 : 6.4;
+  // frame the piano tighter on narrow screens; closer still in fullscreen
+  // landscape so the keys fill the screen
+  let dist = rect.width < 480 ? 7.6 : 6.4;
+  if (document.fullscreenElement === wrap || wrap.classList.contains('fake-fullscreen')) dist = 4.4;
   const dir = camera.position.clone().normalize();
   camera.position.copy(dir.multiplyScalar(dist));
   camera.lookAt(ORBIT_TARGET);

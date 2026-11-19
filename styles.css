@@ -98,6 +98,56 @@ body {
 
 #piano-canvas { display: block; width: 100%; height: 100%; }
 
+/* fullscreen: the piano fills the whole screen, keys enlarged */
+#piano-canvas-wrap:fullscreen,
+#piano-canvas-wrap:-webkit-full-screen,
+#piano-canvas-wrap.fake-fullscreen {
+  max-width: none;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  border-radius: 0;
+  aspect-ratio: auto;
+}
+
+/* fake fullscreen (iPhone, blocked browsers): pin the piano over the page */
+#piano-canvas-wrap.fake-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
+/* in fullscreen the controls move to the top so no key is covered */
+#piano-canvas-wrap:fullscreen .piano-hud,
+#piano-canvas-wrap:-webkit-full-screen .piano-hud,
+#piano-canvas-wrap.fake-fullscreen .piano-hud {
+  top: 12px;
+  bottom: auto;
+}
+
+/* rotate hint: only when fullscreen and still portrait */
+.rotate-hint {
+  display: none;
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--gold-bright);
+  font-size: 1.1rem;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  z-index: 6;
+  background: rgba(11,9,8,0.7);
+}
+
+@media (orientation: portrait) {
+  #piano-canvas-wrap:fullscreen .rotate-hint,
+  #piano-canvas-wrap:-webkit-full-screen .rotate-hint,
+  #piano-canvas-wrap.fake-fullscreen .rotate-hint { display: flex; }
+}
+
 .piano-hud {
   position: absolute;
   left: 12px;
