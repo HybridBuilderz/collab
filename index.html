@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Jenni's Piano</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Jenni's Keyboard</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
@@ -15,36 +15,65 @@
     <p class="hero-pre">a small corner of the world, made of music</p>
     <h1 class="hero-name">Jenni</h1>
     <p class="hero-sub">for the girl whose fingers speak in keys</p>
-    <a class="hero-cta" href="#piano-section">play the piano ↓</a>
+    <a class="hero-cta" href="#keyboard-section">play the keyboard ↓</a>
   </div>
 </section>
 
-<section id="piano-section" class="piano-section">
-  <div id="piano-canvas-wrap">
-    <canvas id="piano-canvas"></canvas>
-
-    <div class="piano-hud">
-      <div class="hud-row">
-        <button id="btn-oct-down" class="hud-btn" aria-label="Octave down">−8ve</button>
-        <span id="octave-label" class="oct-label">C4</span>
-        <button id="btn-oct-up" class="hud-btn" aria-label="Octave up">+8ve</button>
+<section id="keyboard-section" class="kb-section">
+  <div id="kb-canvas-wrap">
+    <div class="kb-top">
+      <div class="kb-group">
+        <span class="kb-label">sound</span>
+        <select id="sel-instrument" class="kb-select">
+          <option value="grand">grand piano</option>
+          <option value="epiano">electric piano</option>
+          <option value="synth">synth keys</option>
+          <option value="musicbox">music box</option>
+        </select>
       </div>
-      <div class="hud-row">
-        <button id="btn-sustain" class="hud-btn sustain-btn" aria-pressed="false">sustain&nbsp;pedal</button>
-        <button id="btn-fullscreen" class="hud-btn">fullscreen</button>
+      <div class="kb-group">
+        <button id="btn-labels" class="kb-btn" aria-pressed="false">labels</button>
+        <button id="btn-sustain" class="kb-btn" aria-pressed="false">sustain</button>
+      </div>
+      <div class="kb-group">
+        <button id="btn-metro" class="kb-btn" aria-pressed="false">metronome</button>
+        <input id="bpm" class="kb-slider" type="range" min="40" max="208" step="1" value="96">
+        <span id="bpm-label" class="kb-value">96</span>
+      </div>
+      <div class="kb-group">
+        <button id="btn-rec" class="kb-btn" aria-pressed="false">● rec</button>
+        <button id="btn-play" class="kb-btn">▶ play</button>
+      </div>
+      <div class="kb-group">
+        <span class="kb-label">vol</span>
+        <input id="vol" class="kb-slider" type="range" min="0" max="100" step="1" value="80">
+      </div>
+      <span id="kb-status" class="kb-status"></span>
+    </div>
+
+    <div id="kb-stage">
+      <canvas id="kb-canvas"></canvas>
+      <div id="kb-labels"></div>
+
+      <div id="kb-scroll"><div id="kb-scroll-thumb"></div></div>
+
+      <div class="kb-hint">tap the keys — chords work too · drag the dark to slide along the keyboard</div>
+      <div id="rotate-hint" class="rotate-hint">rotate your phone to play</div>
+
+      <div id="audio-gate" class="audio-gate">
+        <div class="gate-card">
+          <h2>the keyboard is waiting</h2>
+          <p>tuning the strings…</p>
+          <button id="btn-enter" class="gate-btn">open the lid</button>
+        </div>
       </div>
     </div>
 
-    <p class="piano-hint">tap the keys — chords work too · drag the dark to look around · fullscreen to play with two hands</p>
-
-    <div id="rotate-hint" class="rotate-hint">rotate your phone to play</div>
-
-    <div id="audio-gate" class="audio-gate">
-      <div class="gate-card">
-        <h2>the piano is waiting</h2>
-        <p>tuning the strings…</p>
-        <button id="btn-enter" class="gate-btn">open the lid</button>
-      </div>
+    <div class="kb-bottom">
+      <button id="btn-oct-down" class="kb-btn" aria-label="Octave down">−8ve</button>
+      <span id="range-label" class="kb-value">C3 – B4</span>
+      <button id="btn-oct-up" class="kb-btn" aria-label="Octave up">+8ve</button>
+      <button id="btn-fullscreen" class="kb-btn">fullscreen</button>
     </div>
   </div>
 </section>
